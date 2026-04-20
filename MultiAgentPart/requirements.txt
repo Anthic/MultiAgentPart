@@ -1,0 +1,33 @@
+# ============================================================
+# Multi-Agent Research System - Requirements
+# ============================================================
+
+# --- Core LangChain & LCEL (Runnables / Pipeline) ---
+langchain
+langchain-core
+langchain-community
+
+# --- Mistral AI (LLM Backend for Agents) ---
+mistralai
+langchain-mistralai
+
+# --- LangGraph (ReAct Agent / create_react_agent) ---
+langgraph
+
+# --- Tavily (Search Tool) ---
+tavily-python
+langchain-tavily
+
+# --- BeautifulSoup (Web Scraping Tool) ---
+beautifulsoup4
+lxml
+requests
+httpx
+
+# --- Environment & Config Management ---
+python-dotenv
+
+# --- Data Handling & Utilities ---
+pydantic
+tiktoken
+tenacity
