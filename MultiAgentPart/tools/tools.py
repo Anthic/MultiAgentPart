@@ -9,12 +9,21 @@ load_dotenv()
 tavily_search_tool = TavilySearchResults(k=5)
 _URL_PATTERN = re.compile(r"https?://[^\s\]\)\}\>,\"']+")
 
-def extract_urls_from_search_output(search_text : str, top_K : int =3) -> List[str]:
+def extract_urls_from_search_output(
+    search_text: str,
+    top_k: int = 3,
+    top_K: int | None = None,
+) -> List[str]:
     """
-    Extract URLs from raw tool output text and keep only unique top_k links.
+    Extract URLs from raw tool output text and keep only unique top-k links.
+
+    Supports both top_k and legacy top_K for compatibility.
     """
     if not search_text:
         return []
+
+    limit = top_K if top_K is not None else top_k
+
     found =  _URL_PATTERN.findall(search_text)
     unique = []
     seen = set()
@@ -24,6 +33,6 @@ def extract_urls_from_search_output(search_text : str, top_K : int =3) -> List[s
         if normalized not in seen :
             seen.add(normalized)
             unique.append(normalized)
-        if len(unique) >= top_K:
+        if len(unique) >= limit:
             break
     return unique

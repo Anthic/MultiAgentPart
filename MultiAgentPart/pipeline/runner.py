@@ -12,6 +12,7 @@ from agents import (
     run_reader_agent,
 )
 from pipeline.model import get_llm
+from pipeline.rag import run_rag_node
 from pipeline.chains import (
     build_writer_chain,
     run_writer,
@@ -28,11 +29,14 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+
 class ResearchState(TypedDict):
     topic: str
     search_results: str
+    verified_urls: List[str]
     urls: List[str]
     scraped_content: str
+    rag_context: str
     report: str
     critique: str
     critique_score: int
@@ -40,21 +44,16 @@ class ResearchState(TypedDict):
     max_retries: int
     error: str
 
+
 def parse_score(critique: str) -> int:
-    """
-    Extract 'Score: X/10' using regex.
-    """
     match = re.search(r"Score:\s*(\d+)\s*/\s*10", critique or "", flags=re.IGNORECASE)
     if not match:
         return 0
     score = int(match.group(1))
     return max(0, min(score, 10))
 
+
 def route_after_critic(state: ResearchState) -> str:
-    """
-    Pure router:
-    Reads state only, returns next route key.
-    """
     score = state.get("critique_score", 0)
     retries = state.get("retry_count", 0)
     max_retries = state.get("max_retries", 1)
@@ -65,22 +64,19 @@ def route_after_critic(state: ResearchState) -> str:
         return "rewrite"
     return "end"
 
+
 def bump_retry(state: ResearchState) -> ResearchState:
-    """
-    Increment retry count before rewriting.
-    """
     return {
         **state,
         "retry_count": state.get("retry_count", 0) + 1,
     }
 
+
 def run_critic_and_score(state: dict, critic_chain) -> dict:
-    """
-    Critic node wrapper that also parses score into state.
-    """
     updated = run_critic(state, critic_chain)
     updated["critique_score"] = parse_score(updated.get("critique", ""))
     return updated
+
 
 def build_pipeline():
     fast_llm = get_llm("fast")
@@ -95,13 +91,15 @@ def build_pipeline():
 
     graph.add_node("search", lambda s: run_search_agent(s, search_agent))
     graph.add_node("reader", lambda s: run_reader_agent(s, reader_agent))
+    graph.add_node("rag", lambda s: run_rag_node(s))
     graph.add_node("writer", lambda s: run_writer(s, writer_chain))
     graph.add_node("critic", lambda s: run_critic_and_score(s, critic_chain))
     graph.add_node("prepare_rewrite", bump_retry)
 
     graph.add_edge(START, "search")
     graph.add_edge("search", "reader")
-    graph.add_edge("reader", "writer")
+    graph.add_edge("reader", "rag")
+    graph.add_edge("rag", "writer")
     graph.add_edge("writer", "critic")
 
     graph.add_conditional_edges(

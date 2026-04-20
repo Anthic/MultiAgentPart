@@ -1,6 +1,6 @@
 import logging
 from langgraph.prebuilt import create_react_agent
-from tools import tavily_search_tool
+from tools import tavily_search_tool, extract_urls_from_search_output
 
 log = logging.getLogger(__name__)
 
@@ -35,8 +35,14 @@ def run_search_agent(state: dict, agent) -> dict:
             }
         )
         output = result["messages"][-1].content
+        verified_urls = extract_urls_from_search_output(output, top_k=5)
         log.info("Search complete. chars=%d", len(output))
-        return {**state, "search_results": output}
+        return {**state, "search_results": output, "verified_urls": verified_urls}
     except Exception as exc:
         log.exception("Search failed")
-        return {**state, "search_results": "", "error": f"Search failed: {exc}"}
+        return {
+            **state,
+            "search_results": "",
+            "verified_urls": [],
+            "error": f"Search failed: {exc}",
+        }

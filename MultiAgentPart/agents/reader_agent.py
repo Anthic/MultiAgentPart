@@ -17,8 +17,12 @@ def run_reader_agent(state: dict, _reader) -> dict:
     if state.get("error"):
         return {**state, "scraped_content": ""}
 
-    search_text = state.get("search_results", "")
-    urls = extract_urls_from_search_output(search_text, top_k=3)
+    verified_urls = state.get("verified_urls", [])
+    if verified_urls:
+        urls = verified_urls[:3]
+    else:
+        search_text = state.get("search_results", "")
+        urls = extract_urls_from_search_output(search_text, top_k=3)
 
     if not urls:
         return {

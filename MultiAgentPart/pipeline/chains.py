@@ -10,7 +10,8 @@ _writer_prompt = ChatPromptTemplate.from_messages(
             "system",
             (
                 "You are an expert research writer. "
-                "Write a factual, well-structured report and cite source URLs inline."
+                "Write a factual, well-structured report and cite source URLs inline. "
+                "Never invent or alter URLs."
             ),
         ),
         (
@@ -24,8 +25,15 @@ Raw Search Results:
 Scraped Content:
 {scraped_content}
 
+RAG Context:
+{rag_context}
+
 If critique_feedback is present, improve the report using it:
 {critique_feedback}
+
+Only use these verified URLs in citations and in the Sources section.
+Do not generate any new URL and do not modify these URLs:
+{verified_urls}
 
 Output format:
 ## Introduction
@@ -69,29 +77,38 @@ One line verdict:
     ]
 )
 
+
 def build_writer_chain(llm):
     return _writer_prompt | llm | StrOutputParser()
 
+
 def build_critic_chain(llm):
     return _critic_prompt | llm | StrOutputParser()
+
 
 def run_writer(state: dict, chain) -> dict:
     if state.get("error") and not state.get("scraped_content"):
         return {**state, "report": "", "critique": ""}
 
     try:
+        verified_urls = state.get("verified_urls", [])
+        verified_url_text = "\n".join(f"- {url}" for url in verified_urls)
+
         report = chain.invoke(
             {
                 "topic": state.get("topic", ""),
                 "search_results": state.get("search_results", ""),
                 "scraped_content": state.get("scraped_content", ""),
+                "rag_context": state.get("rag_context", ""),
                 "critique_feedback": state.get("critique", ""),
+                "verified_urls": verified_url_text or "- None",
             }
         )
         return {**state, "report": report}
     except Exception as exc:
         log.exception("Writer failed")
         return {**state, "report": "", "error": f"Writer failed: {exc}"}
+
 
 def run_critic(state: dict, chain) -> dict:
     report = state.get("report", "")
