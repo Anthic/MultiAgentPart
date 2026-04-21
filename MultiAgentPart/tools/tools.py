@@ -1,12 +1,12 @@
 import re
 from typing import List
 from dotenv import load_dotenv
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_tavily import TavilySearch
 
 load_dotenv()
 
-# exsiting tavily tools
-tavily_search_tool = TavilySearchResults(k=5)
+# Use TavilySearch (updated) — max_results replaces deprecated k param
+tavily_search_tool = TavilySearch(max_results=5)
 _URL_PATTERN = re.compile(r"https?://[^\s\]\)\}\>,\"']+")
 
 def extract_urls_from_search_output(

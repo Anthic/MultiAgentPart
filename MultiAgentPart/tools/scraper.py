@@ -11,12 +11,13 @@ DEFAULT_HEADERS = {
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
 }
-
-def scrape_one(url : str, timeout: int = 12,max_chars: int =4000)-> str:
+_session = requests.Session()
+_session.headers.update(DEFAULT_HEADERS)
+def scrape_one(url : str, timeout: int = 8,max_chars: int =3000)-> str:
     """
     Scrape and clean one URL.
     """
-    response = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout) 
+    response = _session.get(url, timeout=timeout)
     response.raise_for_status()
     
     soup = BeautifulSoup(response.text, "lxml")    

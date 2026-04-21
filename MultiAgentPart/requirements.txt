@@ -1,33 +1,47 @@
 # ============================================================
-# Multi-Agent Research System - Requirements
+# Multi-Agent Research System — Production Requirements
 # ============================================================
 
-# --- Core LangChain & LCEL (Runnables / Pipeline) ---
+# --- Core LangChain & LCEL ---
 langchain
 langchain-core
 langchain-community
 
-# --- Mistral AI (LLM Backend for Agents) ---
+# --- Mistral AI (LLM + Embeddings) ---
 mistralai
 langchain-mistralai
 
-# --- LangGraph (ReAct Agent / create_react_agent) ---
+# --- LangGraph ---
 langgraph
 
-# --- Tavily (Search Tool) ---
+# --- Vector Store: Qdrant Cloud ---
+qdrant-client
+langchain-qdrant
+
+# --- History DB: Supabase PostgreSQL ---
+psycopg2-binary
+
+# --- Search ---
 tavily-python
 langchain-tavily
 
-# --- BeautifulSoup (Web Scraping Tool) ---
+# --- Web Scraping ---
 beautifulsoup4
 lxml
 requests
 httpx
 
-# --- Environment & Config Management ---
+# --- PDF Reading ---
+pypdf
+
+# --- FastAPI Web Interface ---
+fastapi
+uvicorn[standard]
+
+# --- Environment & Config ---
 python-dotenv
 
-# --- Data Handling & Utilities ---
+# --- Data Handling ---
 pydantic
 tiktoken
 tenacity

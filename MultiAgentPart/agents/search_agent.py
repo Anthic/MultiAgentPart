@@ -5,9 +5,6 @@ from tools import tavily_search_tool, extract_urls_from_search_output
 log = logging.getLogger(__name__)
 
 def build_search_agent(llm):
-    """
-    Build search agent that uses Tavily.
-    """
     return create_react_agent(
         model=llm,
         tools=[tavily_search_tool],
@@ -19,9 +16,6 @@ def build_search_agent(llm):
     )
 
 def run_search_agent(state: dict, agent) -> dict:
-    """
-    Execute search agent and write raw search output to state.
-    """
     topic = state.get("topic", "").strip()
     if not topic:
         return {**state, "error": "Topic is empty."}
@@ -34,10 +28,36 @@ def run_search_agent(state: dict, agent) -> dict:
                 ]
             }
         )
+
+     
+        verified_urls = []
+        for msg in result["messages"]:
+          
+            if hasattr(msg, "tool_calls") or msg.__class__.__name__ == "ToolMessage":
+                raw = getattr(msg, "content", "")
+                try:
+                    import json
+                    tool_data = json.loads(raw)
+              
+                    if isinstance(tool_data, list):
+                        for item in tool_data:
+                            if isinstance(item, dict) and "url" in item:
+                                verified_urls.append(item["url"])
+                except (json.JSONDecodeError, TypeError):
+                    pass  
+
+      
         output = result["messages"][-1].content
-        verified_urls = extract_urls_from_search_output(output, top_k=5)
-        log.info("Search complete. chars=%d", len(output))
+        if not verified_urls:
+            log.warning("Raw tool URLs not found, falling back to extract_urls_from_search_output")
+            verified_urls = extract_urls_from_search_output(output, top_k=5)
+
+      
+        verified_urls = list(dict.fromkeys(verified_urls))[:5]
+
+        log.info("Search complete. chars=%d, urls=%d", len(output), len(verified_urls))
         return {**state, "search_results": output, "verified_urls": verified_urls}
+
     except Exception as exc:
         log.exception("Search failed")
         return {

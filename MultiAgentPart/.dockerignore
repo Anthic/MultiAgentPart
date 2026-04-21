@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Local data (Cloud Run storage is ephemeral — using cloud services instead)
+data/
+*.db
+*.sqlite
+
+# Dev/test files
+test_api.py
+*.log
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep .env OUT of image — set via Cloud Run env vars instead
+.env
