@@ -124,7 +124,7 @@ def save_research(result: Dict[str, Any]) -> int:
                         result.get("report", ""),
                         result.get("critique", ""),
                         float(result.get("critique_score", 0)),
-                        float(result.get("fact_check_score", 0.0)),
+                        float(result.get("fact_check_score") or 0.0),
                         json.dumps(result.get("verified_urls", [])),
                         float(result.get("time_sec", 0)),
                         int(time.time()),

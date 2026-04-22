@@ -37,10 +37,10 @@ def rewrite_query(topic: str, llm) -> List[str]:
         prompt = _REWRITE_PROMPT.format(topic=topic.strip())
         raw: str = llm.invoke(prompt).content
         queries = [q.strip() for q in raw.strip().splitlines() if q.strip()]
-        # Keep at most 3; fall back to original topic if none generated
-        queries = queries[:2] + [topic.strip()]
+        # Keep at most 2 generated queries; always include original topic (deduplicated)
+        queries = queries[:2]
         if not any(q.strip() == topic.strip() for q in queries):
-            queries = queries[:2] + [topic.strip()]
+            queries.append(topic.strip())
         log.info("QueryRewrite: %d queries generated for topic=%r", len(queries), topic)
         return queries
     except Exception as exc:

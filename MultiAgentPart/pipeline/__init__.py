@@ -52,7 +52,7 @@ def run_research(topic: str) -> dict:
         "report": final_state.get("report", ""),
         "critique": final_state.get("critique", ""),
         "critique_score": final_state.get("critique_score", 0),
-        "fact_check_score": final_state.get("fact_check_score", 0.0),
+        "fact_check_score": final_state.get("fact_check_score") if final_state.get("fact_check_score") is not None else 0.0,
         "fact_check_result": final_state.get("fact_check_result", ""),
         "rewritten_queries": final_state.get("rewritten_queries", []),
         "verified_urls": final_state.get("verified_urls", []),

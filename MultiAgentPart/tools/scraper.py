@@ -3,6 +3,8 @@ from typing import Dict, List
 
 import requests
 import threading
+import ipaddress
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
 
@@ -20,12 +22,39 @@ def _get_session() -> requests.Session:
         _thread_local.session = requests.Session()
         _thread_local.session.headers.update(DEFAULT_HEADERS)
     return _thread_local.session
+
+def _is_url_safe(url: str) -> bool:
+    """Basic SSRF protection: block private IPs and non-HTTP schemes."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        
+        # Block obvious dangerous hosts
+        if hostname.lower() in ("localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254"):
+            return False
+            
+        # Try to detect private IPs
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False
+        except ValueError:
+            pass  # hostname is not an IP, DNS resolution needed for full check
+            
+        return True
+    except Exception:
+        return False
 def scrape_one(url : str, timeout: int = 8,max_chars: int =3000)-> str:
     """
     Scrape and clean one URL.
-    
-    NOTE: Callers should ensure the URL is from a trusted source (SSRF mitigation).
     """
+    if not _is_url_safe(url):
+        raise ValueError(f"URL blocked for security reasons: {url}")
+    
     response = _get_session().get(url, timeout=timeout)
     response.raise_for_status()
     

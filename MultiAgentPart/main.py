@@ -107,7 +107,11 @@ def _print_result(result: dict, streaming: bool = False) -> None:
     print("\n" + _sep())
     score_color = GREEN if score >= 8 else YELLOW if score >= 6 else RED
     print(f"  Critique Score   : {_c(score_color + BOLD, f'{score}/10')}")
-    print(f"  Fact-Check Score : {_c(GREEN if fact_score >= 0.7 else YELLOW, f'{fact_score:.2f}')}")
+    
+    fact_display = f"{fact_score:.2f}" if fact_score is not None else "N/A"
+    fact_color = GREEN if (fact_score or 0) >= 0.7 else YELLOW
+    print(f"  Fact-Check Score : {_c(fact_color, fact_display)}")
+    
     print(f"  Total Time       : {_c(DIM, f'{elapsed}s')}")
 
     if error:
