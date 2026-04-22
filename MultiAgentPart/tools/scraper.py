@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
 import requests
+import threading
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
 
@@ -11,13 +12,21 @@ DEFAULT_HEADERS = {
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
 }
-_session = requests.Session()
-_session.headers.update(DEFAULT_HEADERS)
+_thread_local = threading.local()
+
+def _get_session() -> requests.Session:
+    """Lazy-init a thread-local requests Session for thread safety."""
+    if not hasattr(_thread_local, "session"):
+        _thread_local.session = requests.Session()
+        _thread_local.session.headers.update(DEFAULT_HEADERS)
+    return _thread_local.session
 def scrape_one(url : str, timeout: int = 8,max_chars: int =3000)-> str:
     """
     Scrape and clean one URL.
+    
+    NOTE: Callers should ensure the URL is from a trusted source (SSRF mitigation).
     """
-    response = _session.get(url, timeout=timeout)
+    response = _get_session().get(url, timeout=timeout)
     response.raise_for_status()
     
     soup = BeautifulSoup(response.text, "lxml")    

@@ -16,6 +16,7 @@ import json
 import logging
 import os
 from typing import Any, Callable, Optional
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 
@@ -27,6 +28,7 @@ UPSTASH_REDIS_URL   = os.getenv("UPSTASH_REDIS_URL", "")
 UPSTASH_REDIS_TOKEN = os.getenv("UPSTASH_REDIS_TOKEN", "")
 
 _DEFAULT_TTL = 3600   # 1 hour
+_CACHED_NONE = {"__cached_none__": True}
 
 
 # ── Low-level REST client ──────────────────────────────────────────────────────
@@ -48,7 +50,9 @@ def _redis_command(*args) -> Any:
 
     import httpx
 
-    url     = f"{UPSTASH_REDIS_URL.rstrip('/')}/{'/'.join(str(a) for a in args)}"
+    # Encode path segments (safe='' encodes everything including /)
+    encoded_args = [quote(str(a), safe='') for a in args]
+    url     = f"{UPSTASH_REDIS_URL.rstrip('/')}/{'/'.join(encoded_args)}"
     headers = {"Authorization": f"Bearer {UPSTASH_REDIS_TOKEN}"}
 
     try:
@@ -112,12 +116,18 @@ def cached_search(
 
     cached = _cache_get(key)
     if cached is not None:
+        if isinstance(cached, dict) and cached.get("__cached_none__"):
+            log.info("Cache: 🎯 HIT (None result) for %r", topic)
+            return None
         log.info("Cache: 🎯 HIT for %r", topic)
         return cached
 
     log.info("Cache: MISS for %r — running search", topic)
     result = search_fn(topic)
-    _cache_set(key, result, ttl=ttl)
+    
+    # Cache even if result is None (using sentinel)
+    to_store = _CACHED_NONE if result is None else result
+    _cache_set(key, to_store, ttl=ttl)
     return result
 
 

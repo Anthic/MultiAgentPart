@@ -9,7 +9,6 @@ Full upgraded pipeline with new nodes:
     → reader          ← parallel scrape verified URLs
     → summarize       ← condense noisy scraped content
     → rag             ← Chroma vector similarity retrieval
-    → fact_check      ← verify report claims vs. sources  (post-writer)
     → writer          ← write grounded report
     → fact_check      ← verify claims in report
     → critic          ← score & feedback loop

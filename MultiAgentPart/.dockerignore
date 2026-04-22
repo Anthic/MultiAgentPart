@@ -9,7 +9,7 @@ __pycache__/
 venv/
 env/
 
-# Local data (Cloud Run storage is ephemeral — using cloud services instead)
+# Local data
 data/
 *.db
 *.sqlite
@@ -17,6 +17,7 @@ data/
 # Dev/test files
 test_api.py
 *.log
+tests/
 
 # Git
 .git/
@@ -25,10 +26,20 @@ test_api.py
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Keep .env OUT of image — set via Cloud Run env vars instead
+# Documentation
+*.md
+docs/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Keep .env OUT of image
 .env

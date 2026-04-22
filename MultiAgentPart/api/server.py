@@ -25,6 +25,7 @@ Run locally:
   uvicorn api.server:app --reload --port 8000
 """
 
+from tenacity import asyncio
 import json
 import logging
 import os
@@ -61,8 +62,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten in production: ["https://your-app.vercel.app"]
-    allow_credentials=True,
+    allow_origins=["*"],   # For dev only - no credentials support
+    allow_credentials=False,  # Set True only with explicit origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -76,6 +77,14 @@ class JobStore:
     Falls back to a plain dict if Redis is unavailable (dev mode).
     """
     _local: dict = {}   # fallback in-memory store
+    _locks: dict = {}   # per-job locks
+    _global_lock = threading.Lock()
+
+    def _get_lock(self, job_id: str) -> threading.Lock:
+        with self._global_lock:
+            if job_id not in self._locks:
+                self._locks[job_id] = threading.Lock()
+            return self._locks[job_id]
 
     def _redis_key(self, job_id: str) -> str:
         return f"job:{job_id}"
@@ -98,9 +107,10 @@ class JobStore:
         return self._local.get(job_id)  # fallback
 
     def update(self, job_id: str, patch: dict) -> None:
-        existing = self.get(job_id) or {}
-        existing.update(patch)
-        self.set(job_id, existing)
+        with self._get_lock(job_id):
+            existing = self.get(job_id) or {}
+            existing.update(patch)
+            self.set(job_id, existing)
 
 
 _jobs = JobStore()
@@ -145,7 +155,6 @@ def _run_pipeline_background(job_id: str, topic: str) -> None:
         _jobs.update(job_id, {"status": "running", "progress": 5, "stage": "starting"})
 
         # ── Patch pipeline to emit progress updates ────────────────────────
-        import pipeline as pipe_module
         from pipeline import run_research
 
         # Override the compiled pipeline's invoke to intercept node calls.
@@ -321,7 +330,7 @@ async def get_history_item(record_id: int):
     """Get a single research record by ID."""
     try:
         from memory.history import get_by_id
-        record = get_by_id(record_id)
+        record = await asyncio.to_thread(get_by_id, record_id)
         if not record:
             raise HTTPException(status_code=404, detail=f"Record {record_id} not found")
         return record

@@ -7,7 +7,6 @@ Usage examples:
   python main.py                                     # interactive prompt
   python main.py "quantum computing 2024"            # direct topic argument
   python main.py "quantum computing" --stream        # streaming output
-  python main.py "quantum computing" --no-fact-check # skip fact-check node
   python main.py --history                           # show recent sessions
 """
 

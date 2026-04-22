@@ -75,6 +75,7 @@ def _get_conn():
 
 def _init_db() -> None:
     """Ensure the table exists (idempotent — safe to call every time)."""
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -82,10 +83,12 @@ def _init_db() -> None:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(_CREATE_TABLE_SQL)
-        conn.close()
         log.info("History: Supabase table ready")
     except Exception as exc:
         log.warning("History: could not init DB — %s", exc)
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 # Run table creation once at import time (fast — CREATE TABLE IF NOT EXISTS)
@@ -100,14 +103,9 @@ except Exception:
 def save_research(result: Dict[str, Any]) -> int:
     """
     Persist a completed research result to Supabase.
-
-    Args:
-        result: dict with keys: topic, report, critique, critique_score,
-                fact_check_score, verified_urls, time_sec
-
-    Returns:
-        id of the inserted row, or -1 on failure.
+    ... (omitted docstring for brevity) ...
     """
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -133,16 +131,19 @@ def save_research(result: Dict[str, Any]) -> int:
                     ),
                 )
                 row_id: int = cur.fetchone()[0]
-        conn.close()
         log.info("History: saved research id=%d topic=%r", row_id, result.get("topic"))
         return row_id
     except Exception as exc:
         log.exception("History: save_research failed — %s", exc)
         return -1
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def get_recent(limit: int = 10) -> List[Dict]:
     """Return the `limit` most recent research entries (newest first)."""
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -159,15 +160,18 @@ def get_recent(limit: int = 10) -> List[Dict]:
             )
             cols = [d[0] for d in cur.description]
             rows = [dict(zip(cols, row)) for row in cur.fetchall()]
-        conn.close()
         return rows
     except Exception as exc:
         log.exception("History: get_recent failed — %s", exc)
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def get_by_id(record_id: int) -> Optional[Dict]:
     """Retrieve a full research record by its id."""
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -179,22 +183,24 @@ def get_by_id(record_id: int) -> Optional[Dict]:
             )
             row = cur.fetchone()
             if not row:
-                conn.close()
                 return None
             cols = [d[0] for d in cur.description]
             result = dict(zip(cols, row))
             # urls is stored as JSONB — psycopg2 returns it as dict/list already
             if isinstance(result.get("urls"), str):
                 result["urls"] = json.loads(result["urls"])
-        conn.close()
         return result
     except Exception as exc:
         log.exception("History: get_by_id failed — %s", exc)
         return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def find_similar(topic: str, limit: int = 3) -> List[Dict]:
     """Find past research with topics similar to the given one (full-text LIKE)."""
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -217,15 +223,18 @@ def find_similar(topic: str, limit: int = 3) -> List[Dict]:
             )
             cols = [d[0] for d in cur.description]
             rows = [dict(zip(cols, row)) for row in cur.fetchall()]
-        conn.close()
         return rows
     except Exception as exc:
         log.exception("History: find_similar failed — %s", exc)
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def history_stats() -> Dict[str, Any]:
     """Aggregate statistics about stored research sessions."""
+    conn = None
     try:
         conn = _get_conn()
         if conn is None:
@@ -237,8 +246,10 @@ def history_stats() -> Dict[str, Any]:
             )
             cols = [d[0] for d in cur.description]
             row = cur.fetchone()
-        conn.close()
         return dict(zip(cols, row)) if row else {}
     except Exception as exc:
         log.exception("History: stats failed — %s", exc)
         return {}
+    finally:
+        if conn is not None:
+            conn.close()

@@ -147,10 +147,14 @@ def run_writer(state: dict, chain) -> dict:
         return {**state, "report": "", "error": f"Writer failed: {exc}"}
 
 
-def run_writer_streaming(state: dict, chain):
+def run_writer_streaming(state: dict, chain, result_holder: dict = None):
     """
     Generator version of run_writer — yields chunks for CLI streaming.
-    Usage: for chunk in run_writer_streaming(state, chain): print(chunk, end="")
+    Usage:
+        result = {}
+        for chunk in run_writer_streaming(state, chain, result): 
+            print(chunk, end="")
+        full_report = result.get("report", "")
     """
     verified_urls = state.get("verified_urls", [])
     verified_url_text = "\n".join(f"- {url}" for url in verified_urls)
@@ -175,7 +179,8 @@ def run_writer_streaming(state: dict, chain):
         full_report += chunk
         yield chunk
 
-    return full_report
+    if result_holder is not None:
+        result_holder["report"] = full_report
 
 
 def run_critic(state: dict, chain) -> dict:

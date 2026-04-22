@@ -9,6 +9,8 @@ model_map = {
 _llm_cache : dict = {}
 
 def get_llm(kind : str) :
+    if kind not in model_map:
+        raise ValueError(f"Unknown model kind: {kind!r}. Valid options: {list(model_map.keys())}")
     if kind not in _llm_cache:
         _llm_cache[kind] = ChatMistralAI(
             model= model_map[kind],

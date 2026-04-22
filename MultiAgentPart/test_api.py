@@ -22,12 +22,12 @@ def sep(title=""):
 
 # ── Health ────────────────────────────────────────────────
 sep("TEST 1: Health Check")
-r = httpx.get(f"{BASE}/health")
+r = httpx.get(f"{BASE}/health", timeout=10)
 assert r.status_code == 200
 data = r.json()
-print(f"  status  : {data['status']}")
-print(f"  service : {data['service']}")
-print(f"  version : {data['version']}")
+print(f"  status  : {data.get('status')}")
+print(f"  service : {data.get('service')}")
+print(f"  version : {data.get('version')}")
 print("  PASS")
 
 # ── Start research job ──────────────────────────────────
@@ -50,7 +50,7 @@ sep("TEST 3: GET /job/{id} - Polling Status")
 print("  Polling every 3s (pipeline running in background)...\n")
 for i in range(5):
     time.sleep(3)
-    r = httpx.get(f"{BASE}/job/{job_id}")
+    r = httpx.get(f"{BASE}/job/{job_id}", timeout=10)
     assert r.status_code == 200
     s = r.json()
     status   = s["status"]
@@ -64,7 +64,7 @@ print("  PASS - polling works")
 
 # ── Cache stats ──────────────────────────────────────────
 sep("TEST 4: GET /cache/stats (Upstash Redis)")
-r = httpx.get(f"{BASE}/cache/stats")
+r = httpx.get(f"{BASE}/cache/stats", timeout=10)
 assert r.status_code == 200
 stats = r.json()
 print(f"  status   : {stats.get('status')}")
@@ -74,7 +74,7 @@ print("  PASS")
 
 # ── History ─────────────────────────────────────────────
 sep("TEST 5: GET /history (Supabase)")
-r = httpx.get(f"{BASE}/history")
+r = httpx.get(f"{BASE}/history", timeout=10)
 assert r.status_code == 200
 h = r.json()
 print(f"  count   : {h.get('count', 0)}")
@@ -83,12 +83,12 @@ print("  PASS (empty if Supabase not connected yet)")
 
 # ── OpenAPI docs ─────────────────────────────────────────
 sep("TEST 6: OpenAPI Docs")
-r = httpx.get(f"{BASE}/docs")
+r = httpx.get(f"{BASE}/docs", timeout=10)
 assert r.status_code == 200
 print(f"  Swagger UI accessible at: {BASE}/docs")
 print("  PASS")
 
 sep("ALL TESTS COMPLETE")
-print("  Server: http://localhost:8001")
-print("  Docs  : http://localhost:8001/docs")
+print(f"  Server: {BASE}")
+print(f"  Docs  : {BASE}/docs")
 print()

@@ -1,3 +1,4 @@
+import json
 import logging
 from langgraph.prebuilt import create_react_agent
 from tools import tavily_search_tool, extract_urls_from_search_output
@@ -36,7 +37,6 @@ def run_search_agent(state: dict, agent) -> dict:
             if hasattr(msg, "tool_calls") or msg.__class__.__name__ == "ToolMessage":
                 raw = getattr(msg, "content", "")
                 try:
-                    import json
                     tool_data = json.loads(raw)
               
                     if isinstance(tool_data, list):
@@ -47,12 +47,16 @@ def run_search_agent(state: dict, agent) -> dict:
                     pass  
 
       
-        output = result["messages"][-1].content
+        messages = result.get("messages", [])
+        if not messages:
+            log.warning("No messages returned from search agent")
+            return {**state, "search_results": "", "verified_urls": [], "error": "No messages returned"}
+
+        output = messages[-1].content or ""
         if not verified_urls:
             log.warning("Raw tool URLs not found, falling back to extract_urls_from_search_output")
             verified_urls = extract_urls_from_search_output(output, top_k=5)
 
-      
         verified_urls = list(dict.fromkeys(verified_urls))[:5]
 
         log.info("Search complete. chars=%d, urls=%d", len(output), len(verified_urls))

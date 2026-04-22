@@ -19,6 +19,7 @@ from langchain_mistralai import MistralAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.models import Distance, VectorParams
 
 load_dotenv()
@@ -57,9 +58,12 @@ def _get_embeddings() -> MistralAIEmbeddings:
     """Lazy-init Mistral Embeddings (API-based, no local model download)."""
     global _embeddings
     if _embeddings is None:
+        api_key = os.getenv("MISTRALAI_API_KEY")
+        if not api_key:
+            raise EnvironmentError("MISTRALAI_API_KEY must be set in .env")
         _embeddings = MistralAIEmbeddings(
             model=EMBEDDING_MODEL,
-            api_key=os.getenv("MISTRALAI_API_KEY"),
+            api_key=api_key,
         )
         log.info("RAG: Mistral Embeddings initialised (model=%s)", EMBEDDING_MODEL)
     return _embeddings
@@ -81,12 +85,19 @@ def _ensure_collection(client: QdrantClient, name: str) -> bool:
     existing = {c.name for c in client.get_collections().collections}
     if name in existing:
         return False
-    client.create_collection(
-        collection_name=name,
-        vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
-    )
-    log.info("RAG: Created Qdrant collection '%s'", name)
-    return True
+
+    try:
+        client.create_collection(
+            collection_name=name,
+            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+        )
+        log.info("RAG: Created Qdrant collection '%s'", name)
+        return True
+    except UnexpectedResponse as e:
+        if "already exists" in str(e).lower():
+            log.info("RAG: Collection '%s' created by another worker", name)
+            return False
+        raise
 
 
 def _chunk_text(raw_text: str) -> List[Document]:

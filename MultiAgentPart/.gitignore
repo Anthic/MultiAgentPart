@@ -1,0 +1,30 @@
+# Secrets — NEVER commit
+.env
+*.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Local data (using cloud services in production)
+data/
+*.db
+*.sqlite
+
+# Dev files
+test_api.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -66,7 +66,7 @@ def run_fact_check_node(state: Dict, llm) -> Dict:
     report: str = state.get("report", "").strip()
     if not report:
         log.warning("FactCheck: no report to verify, skipping")
-        return {**state, "fact_check_result": "", "fact_check_score": 1.0}
+        return {**state, "fact_check_result": "", "fact_check_score": None}
 
     # Build source corpus (scraped + RAG context)
     sources = "\n\n".join(
