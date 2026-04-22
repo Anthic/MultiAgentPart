@@ -4,6 +4,7 @@ from typing import Dict, List
 import requests
 import threading
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
@@ -24,7 +25,10 @@ def _get_session() -> requests.Session:
     return _thread_local.session
 
 def _is_url_safe(url: str) -> bool:
-    """Basic SSRF protection: block private IPs and non-HTTP schemes."""
+    """
+    SSRF & DNS Rebinding protection:
+    Resolves hostname to IPs and blocks private/internal ranges.
+    """
     try:
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
@@ -33,17 +37,25 @@ def _is_url_safe(url: str) -> bool:
         if not hostname:
             return False
         
-        # Block obvious dangerous hosts
-        if hostname.lower() in ("localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254"):
+        # 1. Block obvious dangerous hostname strings
+        dangerous_hosts = ("localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "::1")
+        if hostname.lower() in dangerous_hosts:
             return False
             
-        # Try to detect private IPs
+        # 2. DNS Resolution & IP Validation (Prevents DNS Rebinding)
         try:
-            ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback or ip.is_link_local:
-                return False
-        except ValueError:
-            pass  # hostname is not an IP, DNS resolution needed for full check
+            # Resolve all possible IPs for this host (IPv4 and IPv6)
+            addr_info = socket.getaddrinfo(hostname, None)
+            for info in addr_info:
+                ip_str = info[4][0]
+                ip = ipaddress.ip_address(ip_str)
+                
+                # Block private, loopback, and link-local IPs
+                if ip.is_private or ip.is_loopback or ip.is_link_local:
+                    return False
+        except (socket.gaierror, ValueError):
+            # If DNS fails or IP is invalid, block it for safety
+            return False
             
         return True
     except Exception:
