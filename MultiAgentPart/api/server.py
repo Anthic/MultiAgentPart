@@ -216,10 +216,29 @@ def _run_pipeline_background(job_id: str, topic: str) -> None:
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
+@app.get("/")
+async def root():
+    """Root endpoint — API overview."""
+    return {
+        "service": "Multi-Agent Research System",
+        "version": "3.0.0",
+        "status": "running",
+        "docs": "/docs",
+        "endpoints": {
+            "start_research": "POST /research",
+            "poll_job":       "GET  /job/{job_id}",
+            "stream_job":     "GET  /stream/{job_id}",
+            "history":        "GET  /history",
+            "health":         "GET  /health",
+        },
+    }
+
+
 @app.get("/health")
 async def health():
     """Health check — returns 200 if the server is alive."""
     return {"status": "ok", "service": "multi-agent-research", "version": "3.0.0"}
+
 
 
 @app.post("/research", response_model=JobResponse, status_code=202)
